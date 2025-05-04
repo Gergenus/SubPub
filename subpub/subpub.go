@@ -85,7 +85,7 @@ func (sp *subPub) Subscribe(subject string, cb MessageHandler) (Subscription, er
 		for {
 			select {
 			case msg := <-sub.msgChan:
-				sub.handler(msg)
+				sub.handler(msg) // пункт 3 использование каналов позволяет нам выполнить требование три о FIFO очереди
 			case <-sub.doneChan:
 				return
 			case <-sp.closeChan:
@@ -131,6 +131,10 @@ func (sp *subPub) Close(ctx context.Context) error {
 	close(sp.closeChan)
 	sp.mu.Unlock()
 
-	<-ctx.Done()
-	return nil
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
