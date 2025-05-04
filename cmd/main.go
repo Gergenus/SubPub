@@ -14,8 +14,8 @@ import (
 func main() {
 	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	sub := subpub.NewSubPub()
-
-	application := app.NewApp(log, 1488, sub)
+	upper_ctx, upper_cancel := context.WithCancel(context.Background())
+	application := app.NewApp(log, 1488, sub, upper_ctx)
 
 	go application.GRPCrv.Run()
 
@@ -23,6 +23,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 	<-stop
+	upper_cancel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

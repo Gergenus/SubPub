@@ -1,6 +1,7 @@
 package grpcapp
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net"
@@ -16,9 +17,9 @@ type App struct {
 	port       int
 }
 
-func NewApp(log *slog.Logger, port int, pubsub subpub.SubPub) *App {
+func NewApp(log *slog.Logger, port int, pubsub subpub.SubPub, ctx context.Context) *App {
 	gRPCServer := grpc.NewServer()
-	subpubservice.Register(gRPCServer, pubsub)
+	subpubservice.Register(gRPCServer, pubsub, ctx)
 	return &App{
 		log:        log,
 		gRPCServer: gRPCServer,

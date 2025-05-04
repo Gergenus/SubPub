@@ -17,6 +17,7 @@ type serverAPI struct {
 	pubsub  subpub.SubPub
 	mu      sync.Mutex
 	streams map[string][]*streamContext
+	ctx     context.Context
 }
 
 type streamContext struct {
@@ -24,10 +25,11 @@ type streamContext struct {
 	cancel context.CancelFunc
 }
 
-func Register(gRPC *grpc.Server, pubsub subpub.SubPub) {
+func Register(gRPC *grpc.Server, pubsub subpub.SubPub, ctx context.Context) {
 	api := &serverAPI{
 		pubsub:  pubsub,
 		streams: make(map[string][]*streamContext),
+		ctx:     ctx,
 	}
 	subpubv1.RegisterPubSubServer(gRPC, api)
 }
@@ -58,18 +60,23 @@ func (s *serverAPI) Subscribe(req *subpubv1.SubscribeRequest, stream subpubv1.Pu
 		return status.Errorf(codes.Internal, "failed to subscribe: %v", err)
 	}
 	defer sub.Unsubscribe()
-
-	<-ctx.Done()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	streams := s.streams[req.GetKey()]
-	for index, strm := range streams {
-		if strm == &StreamCtx {
-			s.streams[req.GetKey()] = append(streams[:index], streams[index+1:]...)
-			break
-		}
+	select {
+	case <-ctx.Done():
+	case <-s.ctx.Done():
+		cancel()
 	}
+	defer func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		streams := s.streams[req.GetKey()]
+		for index, strm := range streams {
+			if strm == &StreamCtx {
+				s.streams[req.GetKey()] = append(streams[:index], streams[index+1:]...)
+				break
+			}
+		}
+	}()
+
 	return nil
 }
 
