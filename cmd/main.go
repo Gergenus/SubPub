@@ -6,16 +6,26 @@ import (
 	"os"
 	"os/signal"
 	"subpub/internal/app"
+	"subpub/internal/config"
 	"subpub/subpub"
 	"syscall"
-	"time"
+)
+
+const (
+	envLocal = "local"
+	envDev   = "dev"
+	envProd  = "prod"
 )
 
 func main() {
-	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	cfg := config.MustLoad()
+	log := setupLogger(cfg.Env)
 	sub := subpub.NewSubPub()
+	log.Info("starting application", slog.String("env", cfg.Env), slog.Int("port", cfg.GRPC.Port), slog.Any("cfg", cfg))
+
 	upper_ctx, upper_cancel := context.WithCancel(context.Background())
-	application := app.NewApp(log, 1488, sub, upper_ctx)
+	application := app.NewApp(log, cfg.GRPC.Port, sub, upper_ctx)
 
 	go application.GRPCrv.Run()
 
@@ -25,9 +35,22 @@ func main() {
 	<-stop
 	upper_cancel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.GRPC.Timeout)
 	defer cancel()
 
 	application.GRPCrv.Stop()
 	sub.Close(ctx)
+}
+
+func setupLogger(env string) *slog.Logger {
+	var log *slog.Logger
+	switch env {
+	case envLocal:
+		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	case envDev:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	case envProd:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	}
+	return log
 }

@@ -37,7 +37,6 @@ type subscription struct {
 func (s *subscription) Unsubscribe() {
 	s.sp.mu.Lock()
 	defer s.sp.mu.Unlock()
-
 	subs := s.sp.subjects[s.subject]
 	for i, sub := range subs {
 		if sub == s {

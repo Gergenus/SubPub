@@ -59,14 +59,16 @@ func (s *serverAPI) Subscribe(req *subpubv1.SubscribeRequest, stream subpubv1.Pu
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to subscribe: %v", err)
 	}
-	defer sub.Unsubscribe()
+
 	select {
 	case <-ctx.Done():
 	case <-s.ctx.Done():
 		cancel()
 	}
+	defer sub.Unsubscribe()
 	defer func() {
 		s.mu.Lock()
+
 		defer s.mu.Unlock()
 		streams := s.streams[req.GetKey()]
 		for index, strm := range streams {
