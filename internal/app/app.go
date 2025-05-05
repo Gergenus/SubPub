@@ -4,16 +4,16 @@ import (
 	"context"
 	"log/slog"
 	grpcapp "subpub/internal/app/grpc"
-	"subpub/subpub"
+	"subpub/internal/services/eventbus"
 )
 
 type App struct {
 	GRPCrv *grpcapp.App
 }
 
-func NewApp(log *slog.Logger, grpcPort int, pubsub subpub.SubPub, ctx context.Context) *App {
+func NewApp(ctx context.Context, log *slog.Logger, grpcPort int, pubsub *eventbus.Eventbus) *App {
 
-	app := grpcapp.NewApp(log, grpcPort, pubsub, ctx)
+	app := grpcapp.NewApp(ctx, log, grpcPort, pubsub)
 	return &App{
 		GRPCrv: app,
 	}

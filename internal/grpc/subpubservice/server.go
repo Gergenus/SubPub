@@ -2,7 +2,7 @@ package subpubservice
 
 import (
 	"context"
-	"subpub/subpub"
+	"subpub/internal/services/eventbus"
 	"sync"
 
 	subpubv1 "github.com/Gergenus/Protobufsubpub/gen/go/subpub"
@@ -13,11 +13,11 @@ import (
 )
 
 type serverAPI struct {
+	ctx context.Context
 	subpubv1.UnimplementedPubSubServer
-	pubsub  subpub.SubPub
+	pubsub  *eventbus.Eventbus
 	mu      sync.Mutex
 	streams map[string][]*streamContext
-	ctx     context.Context
 }
 
 type streamContext struct {
@@ -25,7 +25,7 @@ type streamContext struct {
 	cancel context.CancelFunc
 }
 
-func Register(gRPC *grpc.Server, pubsub subpub.SubPub, ctx context.Context) {
+func Register(ctx context.Context, gRPC *grpc.Server, pubsub *eventbus.Eventbus) {
 	api := &serverAPI{
 		pubsub:  pubsub,
 		streams: make(map[string][]*streamContext),
