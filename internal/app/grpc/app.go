@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"subpub/internal/grpc/subpubservice"
-	"subpub/internal/services/eventbus"
+	"subpub/subpub"
 
 	"google.golang.org/grpc"
 )
@@ -17,7 +17,7 @@ type App struct {
 	port       int
 }
 
-func NewApp(ctx context.Context, log *slog.Logger, port int, pubsub *eventbus.Eventbus) *App {
+func NewApp(ctx context.Context, log *slog.Logger, port int, pubsub subpub.SubPub) *App {
 	gRPCServer := grpc.NewServer()
 	subpubservice.Register(ctx, gRPCServer, pubsub)
 	return &App{

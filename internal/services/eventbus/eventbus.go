@@ -12,6 +12,20 @@ type Eventbus struct {
 	sp  subpub.SubPub
 }
 
+type loggedSubscription struct {
+	sub     subpub.Subscription
+	log     *slog.Logger
+	subject string
+}
+
+func (l *loggedSubscription) Unsubscribe() {
+	const op = "eventbus.Unsubscribe"
+	log := l.log.With(slog.String("op", op))
+	log.Info("unsubscribing", slog.String("subject", l.subject))
+	l.sub.Unsubscribe()
+	log.Info("unsubscribed successfully", slog.String("subject", l.subject))
+}
+
 func (e *Eventbus) Subscribe(subject string, cb subpub.MessageHandler) (subpub.Subscription, error) {
 	const op = "eventbus.Subscribe"
 	log := e.log.With(slog.String("op", op))
@@ -21,7 +35,11 @@ func (e *Eventbus) Subscribe(subject string, cb subpub.MessageHandler) (subpub.S
 		log.Error("failed to subscribe", slog.String("error", err.Error()))
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return sub, nil
+	return &loggedSubscription{
+		sub:     sub,
+		log:     e.log,
+		subject: subject,
+	}, nil
 }
 
 func (e *Eventbus) Publish(subject string, msg interface{}) error {
