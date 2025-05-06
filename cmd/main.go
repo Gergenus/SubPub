@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -22,9 +23,11 @@ func main() {
 
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
+
 	sub := subpub.NewSubPub()
 	subService := eventbus.NewEventBus(log, sub)
-	log.Info("starting application", slog.String("env", cfg.Env), slog.Int("port", cfg.GRPC.Port), slog.Any("cfg", cfg))
+
+	log.Info("starting application", slog.String("env", cfg.Env), slog.Int("port", cfg.GRPC.Port))
 
 	upper_ctx, upper_cancel := context.WithCancel(context.Background())
 	application := app.NewApp(upper_ctx, log, cfg.GRPC.Port, subService)
@@ -41,7 +44,10 @@ func main() {
 	defer cancel()
 
 	application.GRPCrv.Stop()
-	sub.Close(ctx)
+	err := sub.Close(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func setupLogger(env string) *slog.Logger {

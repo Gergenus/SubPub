@@ -63,6 +63,12 @@ func NewSubPub() SubPub {
 }
 
 func (sp *subPub) Subscribe(subject string, cb MessageHandler) (Subscription, error) {
+	if subject == "" {
+		return nil, errors.New("subject is empty")
+	}
+	if cb == nil {
+		return nil, errors.New("handler func is empty")
+	}
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 

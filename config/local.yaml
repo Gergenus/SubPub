@@ -1,4 +1,4 @@
 env: "local"
 grpc:
-  port: 1488
+  port: 40404
   timeout: 5s
